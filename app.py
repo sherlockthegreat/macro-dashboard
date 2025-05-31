@@ -23,10 +23,10 @@ st.set_page_config(
 )
 
 class SignalColor(Enum):
-    GREEN = (1, "Good", "#00FF00")
-    YELLOW = (0, "Uncertainty", "#FFFF00") 
-    ORANGE = (-0.5, "Caution", "#FFA500")
-    RED = (-1, "Bad", "#FF0000")
+    GREEN = (1, "Good", "#4CAF50")
+    YELLOW = (0, "Uncertainty", "#FFC107") 
+    ORANGE = (-0.5, "Caution", "#FF9800")
+    RED = (-1, "Bad", "#F44336")
 
 @dataclass
 class IndicatorConfig:
@@ -249,85 +249,113 @@ def main():
     st.title("📊 V-Macro Dashboard")
     st.markdown("**Real-time Economic Indicator Tracking & Signal Generation**")
     
-    # Enhanced CSS for dark mode compatibility and visibility
+    # Enhanced CSS with professional colors and even box layout
     st.markdown("""
     <style>
-    /* Global text visibility fix */
+    /* Global styling */
     .stApp {
         color: #000000 !important;
     }
     
-    /* Signal containers - Enhanced visibility */
-    .stSuccess, .stError, .stWarning, .stInfo {
-        color: #000000 !important;
+    /* Perfect signal boxes - even sizing and professional colors */
+    .signal-box {
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin: 8px;
+        border: 3px solid;
+        color: #FFFFFF !important;
         font-weight: bold !important;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        width: 100%;
+        box-sizing: border-box;
     }
     
-    .stSuccess > div, .stError > div, .stWarning > div, .stInfo > div {
-        color: #000000 !important;
-        font-weight: bold !important;
+    .signal-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     }
     
-    /* Dataframe styling */
+    .signal-good {
+        background: linear-gradient(135deg, #4CAF50, #66BB6A) !important;
+        border-color: #2E7D32 !important;
+    }
+    
+    .signal-bad {
+        background: linear-gradient(135deg, #F44336, #EF5350) !important;
+        border-color: #C62828 !important;
+    }
+    
+    .signal-caution {
+        background: linear-gradient(135deg, #FF9800, #FFB74D) !important;
+        border-color: #E65100 !important;
+    }
+    
+    .signal-uncertainty {
+        background: linear-gradient(135deg, #FFC107, #FFCA28) !important;
+        border-color: #F57F17 !important;
+        color: #000000 !important;
+    }
+    
+    .signal-box h3 {
+        margin: 0 !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+    }
+    
+    .signal-box p {
+        margin: 8px 0 0 0 !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Ensure equal column widths */
+    .stColumns > div {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+    
+    /* Enhanced dataframe styling */
     .stDataFrame {
         background-color: white !important;
         color: #000000 !important;
+        border-radius: 8px !important;
     }
     
-    /* Metrics containers */
+    /* Better metric styling */
     [data-testid="metric-container"] {
-        background-color: white !important;
-        border: 1px solid #cccccc !important;
-        padding: 10px !important;
-        border-radius: 5px !important;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+        border: 2px solid #dee2e6 !important;
+        padding: 15px !important;
+        border-radius: 10px !important;
         color: #000000 !important;
-    }
-    
-    /* Sidebar styling */
-    .css-1d391kg {
-        background-color: #f0f2f6 !important;
-        color: #000000 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
     
     /* Tab styling */
     .stTabs [data-baseweb="tab-list"] {
-        background-color: white !important;
+        background-color: #f8f9fa !important;
+        border-radius: 8px !important;
+        padding: 4px !important;
     }
     
     .stTabs [data-baseweb="tab"] {
-        color: #000000 !important;
-        font-weight: bold !important;
+        color: #495057 !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        padding: 8px 16px !important;
     }
     
-    /* Custom signal boxes */
-    .signal-box {
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-        margin: 5px;
-        border: 2px solid;
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-    
-    .signal-good {
-        background-color: #90EE90 !important;
-        border-color: #006400 !important;
-    }
-    
-    .signal-bad {
-        background-color: #FFB6C1 !important;
-        border-color: #8B0000 !important;
-    }
-    
-    .signal-caution {
-        background-color: #FFE4B5 !important;
-        border-color: #FF8C00 !important;
-    }
-    
-    .signal-uncertainty {
-        background-color: #FFFFE0 !important;
-        border-color: #DAA520 !important;
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: #007bff !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -398,10 +426,10 @@ def main():
     df = pd.DataFrame(dashboard_data)
     
     with tab1:
-        # Main dashboard
+        # Main dashboard with perfect even boxes
         st.header(f"Dashboard - {selected_horizon}")
         
-        # Category summary with enhanced visibility
+        # Category summary with enhanced styling
         category_summary = []
         for category, scores in categories.items():
             avg_score = np.mean(scores)
@@ -424,56 +452,58 @@ def main():
         
         st.subheader("📈 Category Overview")
         if len(category_df) > 0:
+            # Create equal columns for perfect spacing
             cols = st.columns(len(category_df))
+            
             for i, (_, row) in enumerate(category_df.iterrows()):
                 with cols[i]:
-                    # Enhanced signal display with guaranteed visibility
+                    # Perfect even signal boxes with professional colors
                     if row['Signal'] == 'Good':
                         st.markdown(f"""
                         <div class="signal-box signal-good">
-                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
-                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                            <h3>{row['Category']}</h3>
+                            <p>✅ {row['Signal']}</p>
                         </div>
                         """, unsafe_allow_html=True)
                     elif row['Signal'] == 'Bad':
                         st.markdown(f"""
                         <div class="signal-box signal-bad">
-                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
-                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                            <h3>{row['Category']}</h3>
+                            <p>❌ {row['Signal']}</p>
                         </div>
                         """, unsafe_allow_html=True)
                     elif row['Signal'] == 'Caution':
                         st.markdown(f"""
                         <div class="signal-box signal-caution">
-                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
-                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                            <h3>{row['Category']}</h3>
+                            <p>⚠️ {row['Signal']}</p>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
                         st.markdown(f"""
                         <div class="signal-box signal-uncertainty">
-                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
-                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                            <h3>{row['Category']}</h3>
+                            <p>❓ {row['Signal']}</p>
                         </div>
                         """, unsafe_allow_html=True)
         
         st.subheader("📊 Detailed Indicators")
         def color_signals(val):
             if val == 'Good':
-                return 'background-color: #90EE90; color: #000000; font-weight: bold;'
+                return 'background-color: #4CAF50; color: #FFFFFF; font-weight: bold;'
             elif val == 'Bad':
-                return 'background-color: #FFB6C1; color: #000000; font-weight: bold;'
+                return 'background-color: #F44336; color: #FFFFFF; font-weight: bold;'
             elif val == 'Caution':
-                return 'background-color: #FFE4B5; color: #000000; font-weight: bold;'
+                return 'background-color: #FF9800; color: #FFFFFF; font-weight: bold;'
             else:
-                return 'background-color: #FFFFE0; color: #000000; font-weight: bold;'
+                return 'background-color: #FFC107; color: #000000; font-weight: bold;'
         
         styled_df = df[['Indicator', 'Category', 'Signal', 'Data Points', 'Latest Date', 'Latest_Value']].style.applymap(
             color_signals, subset=['Signal']
         )
         st.dataframe(styled_df, use_container_width=True)
         
-        # Charts
+        # Charts with professional colors
         st.subheader("📈 Signal Distribution")
         
         col1, col2 = st.columns(2)
@@ -485,13 +515,18 @@ def main():
                 names=signal_counts.index,
                 title="Overall Signal Distribution",
                 color_discrete_map={
-                    'Good': '#90EE90',
-                    'Uncertainty': '#FFFFE0',
-                    'Caution': '#FFE4B5',
-                    'Bad': '#FFB6C1'
+                    'Good': '#4CAF50',
+                    'Uncertainty': '#FFC107',
+                    'Caution': '#FF9800',
+                    'Bad': '#F44336'
                 }
             )
-            fig_pie.update_traces(textfont_color='black', textfont_size=14)
+            fig_pie.update_traces(
+                textfont_color='white', 
+                textfont_size=14,
+                textinfo='label+percent'
+            )
+            fig_pie.update_layout(font=dict(color='black', size=12))
             st.plotly_chart(fig_pie, use_container_width=True)
         
         with col2:
@@ -503,10 +538,10 @@ def main():
                 color='Signal',
                 title="Signals by Category",
                 color_discrete_map={
-                    'Good': '#90EE90',
-                    'Uncertainty': '#FFFFE0',
-                    'Caution': '#FFE4B5',
-                    'Bad': '#FFB6C1'
+                    'Good': '#4CAF50',
+                    'Uncertainty': '#FFC107',
+                    'Caution': '#FF9800',
+                    'Bad': '#F44336'
                 }
             )
             fig_bar.update_xaxes(tickangle=45)

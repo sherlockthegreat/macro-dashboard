@@ -249,6 +249,89 @@ def main():
     st.title("📊 V-Macro Dashboard")
     st.markdown("**Real-time Economic Indicator Tracking & Signal Generation**")
     
+    # Enhanced CSS for dark mode compatibility and visibility
+    st.markdown("""
+    <style>
+    /* Global text visibility fix */
+    .stApp {
+        color: #000000 !important;
+    }
+    
+    /* Signal containers - Enhanced visibility */
+    .stSuccess, .stError, .stWarning, .stInfo {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    .stSuccess > div, .stError > div, .stWarning > div, .stInfo > div {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    /* Dataframe styling */
+    .stDataFrame {
+        background-color: white !important;
+        color: #000000 !important;
+    }
+    
+    /* Metrics containers */
+    [data-testid="metric-container"] {
+        background-color: white !important;
+        border: 1px solid #cccccc !important;
+        padding: 10px !important;
+        border-radius: 5px !important;
+        color: #000000 !important;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background-color: #f0f2f6 !important;
+        color: #000000 !important;
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: white !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    /* Custom signal boxes */
+    .signal-box {
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        margin: 5px;
+        border: 2px solid;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    
+    .signal-good {
+        background-color: #90EE90 !important;
+        border-color: #006400 !important;
+    }
+    
+    .signal-bad {
+        background-color: #FFB6C1 !important;
+        border-color: #8B0000 !important;
+    }
+    
+    .signal-caution {
+        background-color: #FFE4B5 !important;
+        border-color: #FF8C00 !important;
+    }
+    
+    .signal-uncertainty {
+        background-color: #FFFFE0 !important;
+        border-color: #DAA520 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Sidebar configuration
     st.sidebar.header("⚙️ Configuration")
     
@@ -318,7 +401,7 @@ def main():
         # Main dashboard
         st.header(f"Dashboard - {selected_horizon}")
         
-        # Category summary
+        # Category summary with enhanced visibility
         category_summary = []
         for category, scores in categories.items():
             avg_score = np.mean(scores)
@@ -344,30 +427,91 @@ def main():
             cols = st.columns(len(category_df))
             for i, (_, row) in enumerate(category_df.iterrows()):
                 with cols[i]:
+                    # Enhanced signal display with guaranteed visibility
                     if row['Signal'] == 'Good':
-                        st.success(f"**{row['Category']}**\n{row['Signal']}")
+                        st.markdown(f"""
+                        <div class="signal-box signal-good">
+                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
+                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                     elif row['Signal'] == 'Bad':
-                        st.error(f"**{row['Category']}**\n{row['Signal']}")
+                        st.markdown(f"""
+                        <div class="signal-box signal-bad">
+                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
+                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                     elif row['Signal'] == 'Caution':
-                        st.warning(f"**{row['Category']}**\n{row['Signal']}")
+                        st.markdown(f"""
+                        <div class="signal-box signal-caution">
+                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
+                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                     else:
-                        st.info(f"**{row['Category']}**\n{row['Signal']}")
+                        st.markdown(f"""
+                        <div class="signal-box signal-uncertainty">
+                            <h3 style="color: #000000 !important; margin: 0;">{row['Category']}</h3>
+                            <p style="color: #000000 !important; margin: 5px 0 0 0; font-size: 18px;">{row['Signal']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
         
         st.subheader("📊 Detailed Indicators")
         def color_signals(val):
             if val == 'Good':
-                return 'background-color: #90EE90'
+                return 'background-color: #90EE90; color: #000000; font-weight: bold;'
             elif val == 'Bad':
-                return 'background-color: #FFB6C1'
+                return 'background-color: #FFB6C1; color: #000000; font-weight: bold;'
             elif val == 'Caution':
-                return 'background-color: #FFE4B5'
+                return 'background-color: #FFE4B5; color: #000000; font-weight: bold;'
             else:
-                return 'background-color: #FFFFE0'
+                return 'background-color: #FFFFE0; color: #000000; font-weight: bold;'
         
         styled_df = df[['Indicator', 'Category', 'Signal', 'Data Points', 'Latest Date', 'Latest_Value']].style.applymap(
             color_signals, subset=['Signal']
         )
         st.dataframe(styled_df, use_container_width=True)
+        
+        # Charts
+        st.subheader("📈 Signal Distribution")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            signal_counts = df['Signal'].value_counts()
+            fig_pie = px.pie(
+                values=signal_counts.values,
+                names=signal_counts.index,
+                title="Overall Signal Distribution",
+                color_discrete_map={
+                    'Good': '#90EE90',
+                    'Uncertainty': '#FFFFE0',
+                    'Caution': '#FFE4B5',
+                    'Bad': '#FFB6C1'
+                }
+            )
+            fig_pie.update_traces(textfont_color='black', textfont_size=14)
+            st.plotly_chart(fig_pie, use_container_width=True)
+        
+        with col2:
+            category_counts = df.groupby(['Category', 'Signal']).size().reset_index(name='Count')
+            fig_bar = px.bar(
+                category_counts,
+                x='Category',
+                y='Count',
+                color='Signal',
+                title="Signals by Category",
+                color_discrete_map={
+                    'Good': '#90EE90',
+                    'Uncertainty': '#FFFFE0',
+                    'Caution': '#FFE4B5',
+                    'Bad': '#FFB6C1'
+                }
+            )
+            fig_bar.update_xaxes(tickangle=45)
+            fig_bar.update_layout(font_color='black')
+            st.plotly_chart(fig_bar, use_container_width=True)
     
     with tab2:
         # Backend data
@@ -411,7 +555,17 @@ def main():
             st.dataframe(raw_data.tail(50), use_container_width=True)
             
             fig = px.line(raw_data.tail(100), x='date', y='value', title=f"{selected_indicator} - Time Series")
+            fig.update_layout(font_color='black')
             st.plotly_chart(fig, use_container_width=True)
+            
+            # Download individual raw data
+            csv = raw_data.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Raw Data as CSV",
+                data=csv,
+                file_name=f"{selected_indicator.replace(' ', '_')}_data.csv",
+                mime="text/csv"
+            )
     
     with tab4:
         # System health
@@ -428,9 +582,20 @@ def main():
                 st.error(f"❌ FRED API Connection: Error {test_response.status_code}")
         except Exception as e:
             st.error(f"❌ FRED API Connection: Failed - {str(e)}")
+        
+        # Performance metrics
+        if data_fetcher.fetch_log:
+            st.subheader("⚡ Performance Metrics")
+            fetch_df = pd.DataFrame(data_fetcher.fetch_log)
+            
+            if 'response_time' in fetch_df.columns:
+                response_times = fetch_df['response_time'].dropna()
+                if len(response_times) > 0:
+                    avg_response_time = response_times.mean()
+                    st.metric("Average API Response Time", f"{avg_response_time:.2f}s")
     
     with tab5:
-        # CSV Export Tab (No Excel dependency)
+        # CSV Export Tab
         st.header("📥 Export Dashboard Data")
         
         csv_data = create_comprehensive_csv(dashboard_data, signal_generator, data_fetcher, raw_data_store, categories)
@@ -477,13 +642,10 @@ def main():
                 mime="text/csv"
             )
         
-        # Combined CSV with all data
+        # Combined CSV
         st.subheader("📊 Combined Export")
         
-        # Combine all data into one CSV
         combined_data = []
-        
-        # Add main dashboard data
         for _, row in csv_data['Dashboard_Summary'].iterrows():
             combined_data.append({
                 'Type': 'Dashboard',
@@ -505,6 +667,23 @@ def main():
             file_name=f"macro_dashboard_combined_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
         )
+        
+        # Data summary
+        st.subheader("📊 Export Data Summary")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Total Indicators", len(dashboard_data))
+        
+        with col2:
+            st.metric("Data Points Available", sum([d['Data Points'] for d in dashboard_data]))
+        
+        with col3:
+            st.metric("Categories", len(categories))
+        
+        with col4:
+            st.metric("API Calls Made", len(data_fetcher.fetch_log))
         
         # Preview
         st.subheader("📋 Data Preview")

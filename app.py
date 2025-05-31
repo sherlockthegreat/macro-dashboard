@@ -192,6 +192,8 @@ def create_comprehensive_csv(dashboard_data, signal_generator, data_fetcher, raw
     
     # 1. Main Dashboard Metrics
     main_df = pd.DataFrame(dashboard_data)
+    # Fix index to start from 1 for CSV export
+    main_df.index = pd.RangeIndex(start=1, stop=len(main_df) + 1)
     
     # 2. Detailed Signal Analysis
     detailed_signals = []
@@ -212,9 +214,13 @@ def create_comprehensive_csv(dashboard_data, signal_generator, data_fetcher, raw
                     })
     
     detailed_df = pd.DataFrame(detailed_signals)
+    if len(detailed_df) > 0:
+        detailed_df.index = pd.RangeIndex(start=1, stop=len(detailed_df) + 1)
     
     # 3. API Performance Metrics
     api_df = pd.DataFrame(data_fetcher.fetch_log)
+    if len(api_df) > 0:
+        api_df.index = pd.RangeIndex(start=1, stop=len(api_df) + 1)
     
     # 4. Category Summary
     category_summary = []
@@ -237,6 +243,8 @@ def create_comprehensive_csv(dashboard_data, signal_generator, data_fetcher, raw
         })
     
     category_df = pd.DataFrame(category_summary)
+    if len(category_df) > 0:
+        category_df.index = pd.RangeIndex(start=1, stop=len(category_df) + 1)
     
     return {
         'Dashboard_Summary': main_df,
@@ -488,6 +496,10 @@ def main():
                         """, unsafe_allow_html=True)
         
         st.subheader("📊 Detailed Indicators")
+        
+        # Fix index to start from 1
+        df.index = pd.RangeIndex(start=1, stop=len(df) + 1)
+        
         def color_signals(val):
             if val == 'Good':
                 return 'background-color: #4CAF50; color: #FFFFFF; font-weight: bold;'
@@ -554,6 +566,8 @@ def main():
         
         if data_fetcher.fetch_log:
             fetch_df = pd.DataFrame(data_fetcher.fetch_log)
+            # Fix index for backend data
+            fetch_df.index = pd.RangeIndex(start=1, stop=len(fetch_df) + 1)
             st.dataframe(fetch_df, use_container_width=True)
             
             success_rate = len(fetch_df[fetch_df['status'] == 'Success']) / len(fetch_df) * 100
@@ -587,7 +601,10 @@ def main():
             st.write(f"**Date Range:** {raw_data['date'].min()} to {raw_data['date'].max()}")
             st.write(f"**Latest Value:** {raw_data['value'].iloc[-1]}")
             
-            st.dataframe(raw_data.tail(50), use_container_width=True)
+            # Fix index for raw data display
+            raw_data_display = raw_data.tail(50).copy()
+            raw_data_display.index = pd.RangeIndex(start=1, stop=len(raw_data_display) + 1)
+            st.dataframe(raw_data_display, use_container_width=True)
             
             fig = px.line(raw_data.tail(100), x='date', y='value', title=f"{selected_indicator} - Time Series")
             fig.update_layout(font_color='black')
@@ -641,7 +658,7 @@ def main():
         
         with col1:
             # Main Dashboard CSV
-            main_csv = csv_data['Dashboard_Summary'].to_csv(index=False)
+            main_csv = csv_data['Dashboard_Summary'].to_csv(index=True)
             st.download_button(
                 label="📥 Download Main Dashboard (CSV)",
                 data=main_csv,
@@ -650,7 +667,7 @@ def main():
             )
             
             # Detailed Signals CSV
-            detailed_csv = csv_data['Detailed_Signals'].to_csv(index=False)
+            detailed_csv = csv_data['Detailed_Signals'].to_csv(index=True)
             st.download_button(
                 label="📥 Download Detailed Signals (CSV)",
                 data=detailed_csv,
@@ -660,7 +677,7 @@ def main():
         
         with col2:
             # API Performance CSV
-            api_csv = csv_data['API_Performance'].to_csv(index=False)
+            api_csv = csv_data['API_Performance'].to_csv(index=True)
             st.download_button(
                 label="📥 Download API Performance (CSV)",
                 data=api_csv,
@@ -669,7 +686,7 @@ def main():
             )
             
             # Category Summary CSV
-            category_csv = csv_data['Category_Summary'].to_csv(index=False)
+            category_csv = csv_data['Category_Summary'].to_csv(index=True)
             st.download_button(
                 label="📥 Download Category Summary (CSV)",
                 data=category_csv,
@@ -694,7 +711,8 @@ def main():
             })
         
         combined_df = pd.DataFrame(combined_data)
-        combined_csv = combined_df.to_csv(index=False)
+        combined_df.index = pd.RangeIndex(start=1, stop=len(combined_df) + 1)
+        combined_csv = combined_df.to_csv(index=True)
         
         st.download_button(
             label="📥 Download Combined Dashboard Data (CSV)",
@@ -720,9 +738,10 @@ def main():
         with col4:
             st.metric("API Calls Made", len(data_fetcher.fetch_log))
         
-        # Preview
+        # Preview with fixed index
         st.subheader("📋 Data Preview")
-        st.dataframe(csv_data['Dashboard_Summary'].head(), use_container_width=True)
+        preview_df = csv_data['Dashboard_Summary'].head()
+        st.dataframe(preview_df, use_container_width=True)
     
     # Footer
     st.markdown("---")

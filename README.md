@@ -6,14 +6,15 @@ Personal macro-economic indicator tracking dashboard built with Streamlit.
 - Real-time economic data from FRED API
 - Color-coded signal system across multiple time horizons
 - Interactive charts and category breakdowns
-- Automatic refresh capabilities
+- Backend data analysis and system health monitoring
+- Raw data viewer with download capabilities
 
 ## Live Dashboard
 [Your dashboard URL will appear here after deployment]
 
 ## Data Sources
 - Federal Reserve Economic Data (FRED)
-- 8 key economic indicators across multiple categories
+- 10 key economic indicators across multiple categories
 
 ## Setup
 1. Get free FRED API key from https://fred.stlouisfed.org/docs/api/api_key.html

@@ -185,6 +185,8 @@ def get_sample_indicators():
         IndicatorConfig("10-Year Treasury Rate", "Financial Markets", "GS10", "lower_is_better"),
         IndicatorConfig("VIX Volatility Index", "Market Structure", "VIXCLS", "lower_is_better"),
         IndicatorConfig("Real GDP", "Economy", "GDPC1", "higher_is_better"),
+        IndicatorConfig("S&P 500", "Market Structure", "SP500", "higher_is_better"),
+        IndicatorConfig("Dollar Index", "Currency", "DTWEXBGS", "higher_is_better"),
     ]
 
 def main():
@@ -230,52 +232,53 @@ def main():
     # Create tabs for different views
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🔍 Backend Data", "📈 Raw Data", "⚙️ System Health"])
     
+    # Store data for use across tabs
+    dashboard_data = []
+    categories = {}
+    raw_data_store = {}
+    
+    # Progress bar for data fetching
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Fetch data and calculate signals
+    for i, indicator in enumerate(indicators):
+        progress_bar.progress((i + 1) / len(indicators))
+        status_text.text(f"Processing: {indicator.name}")
+        
+        # Fetch data
+        data = data_fetcher.fetch_fred_data(indicator.fred_series_id)
+        raw_data_store[indicator.name] = data
+        
+        # Calculate signals
+        signals = signal_generator.calculate_signals(data, indicator.signal_logic, indicator.name)
+        current_signal = signals.get(selected_horizon, SignalColor.YELLOW)
+        
+        # Store for category aggregation
+        if indicator.category not in categories:
+            categories[indicator.category] = []
+        categories[indicator.category].append(current_signal.value[0])
+        
+        # Add to dashboard data
+        dashboard_data.append({
+            'Indicator': indicator.name,
+            'Category': indicator.category,
+            'Signal': current_signal.value[1],
+            'Color': current_signal.value[2],
+            'Score': current_signal.value[0],
+            'Data Points': len(data) if data is not None else 0,
+            'Latest Date': data['date'].max().strftime('%Y-%m-%d') if data is not None and len(data) > 0 else 'No Data'
+        })
+    
+    progress_bar.empty()
+    status_text.empty()
+    
+    # Create dashboard DataFrame
+    df = pd.DataFrame(dashboard_data)
+    
     with tab1:
-        # Main dashboard
+        # Main dashboard content
         st.header(f"Dashboard - {selected_horizon}")
-        
-        # Progress bar
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        # Fetch data and calculate signals
-        dashboard_data = []
-        categories = {}
-        raw_data_store = {}
-        
-        for i, indicator in enumerate(indicators):
-            progress_bar.progress((i + 1) / len(indicators))
-            status_text.text(f"Processing: {indicator.name}")
-            
-            # Fetch data
-            data = data_fetcher.fetch_fred_data(indicator.fred_series_id)
-            raw_data_store[indicator.name] = data
-            
-            # Calculate signals
-            signals = signal_generator.calculate_signals(data, indicator.signal_logic, indicator.name)
-            current_signal = signals.get(selected_horizon, SignalColor.YELLOW)
-            
-            # Store for category aggregation
-            if indicator.category not in categories:
-                categories[indicator.category] = []
-            categories[indicator.category].append(current_signal.value[0])
-            
-            # Add to dashboard data
-            dashboard_data.append({
-                'Indicator': indicator.name,
-                'Category': indicator.category,
-                'Signal': current_signal.value[1],
-                'Color': current_signal.value[2],
-                'Score': current_signal.value[0],
-                'Data Points': len(data) if data is not None else 0,
-                'Latest Date': data['date'].max().strftime('%Y-%m-%d') if data is not None and len(data) > 0 else 'No Data'
-            })
-        
-        progress_bar.empty()
-        status_text.empty()
-        
-        # Create dashboard DataFrame
-        df = pd.DataFrame(dashboard_data)
         
         # Category summary
         st.subheader("📈 Category Overview")
@@ -301,17 +304,18 @@ def main():
         category_df = pd.DataFrame(category_summary)
         
         # Display category overview
-        cols = st.columns(len(category_df))
-        for i, (_, row) in enumerate(category_df.iterrows()):
-            with cols[i]:
-                if row['Signal'] == 'Good':
-                    st.success(f"**{row['Category']}**\n{row['Signal']}")
-                elif row['Signal'] == 'Bad':
-                    st.error(f"**{row['Category']}**\n{row['Signal']}")
-                elif row['Signal'] == 'Caution':
-                    st.warning(f"**{row['Category']}**\n{row['Signal']}")
-                else:
-                    st.info(f"**{row['Category']}**\n{row['Signal']}")
+        if len(category_df) > 0:
+            cols = st.columns(len(category_df))
+            for i, (_, row) in enumerate(category_df.iterrows()):
+                with cols[i]:
+                    if row['Signal'] == 'Good':
+                        st.success(f"**{row['Category']}**\n{row['Signal']}")
+                    elif row['Signal'] == 'Bad':
+                        st.error(f"**{row['Category']}**\n{row['Signal']}")
+                    elif row['Signal'] == 'Caution':
+                        st.warning(f"**{row['Category']}**\n{row['Signal']}")
+                    else:
+                        st.info(f"**{row['Category']}**\n{row['Signal']}")
         
         # Detailed indicators table
         st.subheader("📊 Detailed Indicators")
@@ -386,6 +390,8 @@ def main():
             # Success rate
             success_rate = len(fetch_df[fetch_df['status'] == 'Success']) / len(fetch_df) * 100
             st.metric("API Success Rate", f"{success_rate:.1f}%")
+        else:
+            st.info("No API fetch logs available yet. Refresh the data to see logs.")
         
         # Signal Calculation Details
         st.subheader("🎯 Signal Calculation Details")
@@ -399,6 +405,8 @@ def main():
                     if 'signal_details' in log_entry:
                         details_df = pd.DataFrame.from_dict(log_entry['signal_details'], orient='index')
                         st.dataframe(details_df)
+        else:
+            st.info("No signal calculation logs available yet.")
         
         # Data Quality Metrics
         st.subheader("📈 Data Quality Metrics")
@@ -480,17 +488,19 @@ def main():
             fetch_df = pd.DataFrame(data_fetcher.fetch_log)
             
             if 'response_time' in fetch_df.columns:
-                avg_response_time = fetch_df['response_time'].mean()
-                st.metric("Average API Response Time", f"{avg_response_time:.2f}s")
-                
-                # Response time distribution
-                fig_hist = px.histogram(
-                    fetch_df[fetch_df['response_time'].notna()], 
-                    x='response_time',
-                    title="API Response Time Distribution",
-                    nbins=10
-                )
-                st.plotly_chart(fig_hist, use_container_width=True)
+                response_times = fetch_df['response_time'].dropna()
+                if len(response_times) > 0:
+                    avg_response_time = response_times.mean()
+                    st.metric("Average API Response Time", f"{avg_response_time:.2f}s")
+                    
+                    # Response time distribution
+                    fig_hist = px.histogram(
+                        fetch_df[fetch_df['response_time'].notna()], 
+                        x='response_time',
+                        title="API Response Time Distribution",
+                        nbins=10
+                    )
+                    st.plotly_chart(fig_hist, use_container_width=True)
         
         # Configuration Info
         st.subheader("🔧 Configuration")

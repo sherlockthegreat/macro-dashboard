@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from enum import Enum
 import plotly.express as px
 import plotly.graph_objects as go
-import io
 
 warnings.filterwarnings('ignore')
 
@@ -239,57 +238,11 @@ def create_comprehensive_csv(dashboard_data, signal_generator, data_fetcher, raw
     
     category_df = pd.DataFrame(category_summary)
     
-    # 5. Data Quality Summary
-    total_indicators = len(dashboard_data)
-    indicators_with_data = len([d for d in dashboard_data if d['Data Points'] > 0])
-    successful_api_calls = len([log for log in data_fetcher.fetch_log if log['status'] == 'Success'])
-    total_api_calls = len(data_fetcher.fetch_log)
-    
-    quality_metrics = pd.DataFrame([{
-        'Metric': 'Total Indicators',
-        'Value': total_indicators
-    }, {
-        'Metric': 'Indicators with Data',
-        'Value': indicators_with_data
-    }, {
-        'Metric': 'Data Coverage %',
-        'Value': round((indicators_with_data / total_indicators * 100) if total_indicators > 0 else 0, 2)
-    }, {
-        'Metric': 'API Success Rate %',
-        'Value': round((successful_api_calls / total_api_calls * 100) if total_api_calls > 0 else 0, 2)
-    }, {
-        'Metric': 'Total API Calls',
-        'Value': total_api_calls
-    }, {
-        'Metric': 'Successful API Calls',
-        'Value': successful_api_calls
-    }])
-    
-    # 6. Raw Data Summary
-    raw_data_summary = []
-    for indicator_name, data in raw_data_store.items():
-        if data is not None and len(data) > 0:
-            raw_data_summary.append({
-                'Indicator': indicator_name,
-                'Total_Data_Points': len(data),
-                'First_Date': data['date'].min(),
-                'Last_Date': data['date'].max(),
-                'Current_Value': data['value'].iloc[-1],
-                'Min_Value': data['value'].min(),
-                'Max_Value': data['value'].max(),
-                'Mean_Value': round(data['value'].mean(), 4),
-                'Std_Dev': round(data['value'].std(), 4)
-            })
-    
-    raw_summary_df = pd.DataFrame(raw_data_summary)
-    
     return {
         'Dashboard_Summary': main_df,
         'Detailed_Signals': detailed_df,
         'API_Performance': api_df,
-        'Category_Summary': category_df,
-        'Data_Quality_Metrics': quality_metrics,
-        'Raw_Data_Statistics': raw_summary_df
+        'Category_Summary': category_df
     }
 
 def main():
@@ -314,14 +267,6 @@ def main():
     # Sidebar options
     time_horizons = ['< 3 months', '3-6 months', '6-12 months', '12-24 months']
     selected_horizon = st.sidebar.selectbox("📅 Select Time Horizon", time_horizons)
-    
-    # CSV Export Options
-    st.sidebar.markdown("---")
-    st.sidebar.header("📥 Export Options")
-    export_type = st.sidebar.selectbox(
-        "Select Export Type:",
-        ["Complete Dashboard Metrics", "Detailed Signals Only", "Raw Data Only", "API Performance Only"]
-    )
     
     if st.sidebar.button("🔄 Refresh Data"):
         st.rerun()
@@ -370,7 +315,7 @@ def main():
     df = pd.DataFrame(dashboard_data)
     
     with tab1:
-        # Main dashboard (keep existing code)
+        # Main dashboard
         st.header(f"Dashboard - {selected_horizon}")
         
         # Category summary
@@ -425,7 +370,7 @@ def main():
         st.dataframe(styled_df, use_container_width=True)
     
     with tab2:
-        # Backend data (keep existing)
+        # Backend data
         st.header("🔍 Backend Data & Signal Analysis")
         
         if data_fetcher.fetch_log:
@@ -447,7 +392,7 @@ def main():
                         st.dataframe(details_df)
     
     with tab3:
-        # Raw data viewer (keep existing)
+        # Raw data viewer
         st.header("📋 Raw Economic Data")
         
         selected_indicator = st.selectbox(
@@ -469,7 +414,7 @@ def main():
             st.plotly_chart(fig, use_container_width=True)
     
     with tab4:
-        # System health (keep existing)
+        # System health
         st.header("⚙️ System Health & Performance")
         
         try:
@@ -485,112 +430,85 @@ def main():
             st.error(f"❌ FRED API Connection: Failed - {str(e)}")
     
     with tab5:
-        # CSV Export Tab
+        # CSV Export Tab (No Excel dependency)
         st.header("📥 Export Dashboard Data")
         
-        # Create comprehensive CSV data
         csv_data = create_comprehensive_csv(dashboard_data, signal_generator, data_fetcher, raw_data_store, categories)
         
-        st.subheader("Available Export Options")
+        st.subheader("Available CSV Downloads")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Complete Dashboard Export
-            if export_type == "Complete Dashboard Metrics":
-                st.write("**Complete Dashboard Metrics** - All data in multiple sheets")
-                
-                # Create Excel file with multiple sheets
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    for sheet_name, data in csv_data.items():
-                        data.to_excel(writer, sheet_name=sheet_name, index=False)
-                
-                st.download_button(
-                    label="📥 Download Complete Dashboard (Excel)",
-                    data=output.getvalue(),
-                    file_name=f"macro_dashboard_complete_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                
-                # Also provide CSV of main dashboard
-                main_csv = csv_data['Dashboard_Summary'].to_csv(index=False)
-                st.download_button(
-                    label="📥 Download Main Dashboard (CSV)",
-                    data=main_csv,
-                    file_name=f"macro_dashboard_main_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
+            # Main Dashboard CSV
+            main_csv = csv_data['Dashboard_Summary'].to_csv(index=False)
+            st.download_button(
+                label="📥 Download Main Dashboard (CSV)",
+                data=main_csv,
+                file_name=f"macro_dashboard_main_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
             
-            elif export_type == "Detailed Signals Only":
-                detailed_csv = csv_data['Detailed_Signals'].to_csv(index=False)
-                st.download_button(
-                    label="📥 Download Detailed Signals (CSV)",
-                    data=detailed_csv,
-                    file_name=f"detailed_signals_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
-            
-            elif export_type == "Raw Data Only":
-                # Combine all raw data
-                all_raw_data = []
-                for indicator_name, data in raw_data_store.items():
-                    if data is not None:
-                        data_copy = data.copy()
-                        data_copy['Indicator'] = indicator_name
-                        all_raw_data.append(data_copy)
-                
-                if all_raw_data:
-                    combined_raw = pd.concat(all_raw_data, ignore_index=True)
-                    raw_csv = combined_raw.to_csv(index=False)
-                    st.download_button(
-                        label="📥 Download All Raw Data (CSV)",
-                        data=raw_csv,
-                        file_name=f"all_raw_data_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-            
-            elif export_type == "API Performance Only":
-                api_csv = csv_data['API_Performance'].to_csv(index=False)
-                st.download_button(
-                    label="📥 Download API Performance (CSV)",
-                    data=api_csv,
-                    file_name=f"api_performance_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
+            # Detailed Signals CSV
+            detailed_csv = csv_data['Detailed_Signals'].to_csv(index=False)
+            st.download_button(
+                label="📥 Download Detailed Signals (CSV)",
+                data=detailed_csv,
+                file_name=f"detailed_signals_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
         
         with col2:
-            # Preview of selected export
-            st.write("**Preview of Selected Export:**")
+            # API Performance CSV
+            api_csv = csv_data['API_Performance'].to_csv(index=False)
+            st.download_button(
+                label="📥 Download API Performance (CSV)",
+                data=api_csv,
+                file_name=f"api_performance_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
             
-            if export_type == "Complete Dashboard Metrics":
-                st.dataframe(csv_data['Dashboard_Summary'].head(), use_container_width=True)
-            elif export_type == "Detailed Signals Only":
-                st.dataframe(csv_data['Detailed_Signals'].head(), use_container_width=True)
-            elif export_type == "Raw Data Only":
-                if raw_data_store:
-                    first_indicator = list(raw_data_store.keys())[0]
-                    if raw_data_store[first_indicator] is not None:
-                        st.dataframe(raw_data_store[first_indicator].head(), use_container_width=True)
-            elif export_type == "API Performance Only":
-                st.dataframe(csv_data['API_Performance'].head(), use_container_width=True)
+            # Category Summary CSV
+            category_csv = csv_data['Category_Summary'].to_csv(index=False)
+            st.download_button(
+                label="📥 Download Category Summary (CSV)",
+                data=category_csv,
+                file_name=f"category_summary_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
         
-        # Data summary
-        st.subheader("📊 Export Data Summary")
+        # Combined CSV with all data
+        st.subheader("📊 Combined Export")
         
-        col1, col2, col3, col4 = st.columns(4)
+        # Combine all data into one CSV
+        combined_data = []
         
-        with col1:
-            st.metric("Total Indicators", len(dashboard_data))
+        # Add main dashboard data
+        for _, row in csv_data['Dashboard_Summary'].iterrows():
+            combined_data.append({
+                'Type': 'Dashboard',
+                'Indicator': row['Indicator'],
+                'Category': row['Category'],
+                'Signal': row['Signal'],
+                'Signal_Score': row['Signal_Score'],
+                'Data_Points': row['Data Points'],
+                'Latest_Date': row['Latest Date'],
+                'Latest_Value': row['Latest_Value']
+            })
         
-        with col2:
-            st.metric("Data Points Available", sum([d['Data Points'] for d in dashboard_data]))
+        combined_df = pd.DataFrame(combined_data)
+        combined_csv = combined_df.to_csv(index=False)
         
-        with col3:
-            st.metric("Categories", len(categories))
+        st.download_button(
+            label="📥 Download Combined Dashboard Data (CSV)",
+            data=combined_csv,
+            file_name=f"macro_dashboard_combined_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
         
-        with col4:
-            st.metric("API Calls Made", len(data_fetcher.fetch_log))
+        # Preview
+        st.subheader("📋 Data Preview")
+        st.dataframe(csv_data['Dashboard_Summary'].head(), use_container_width=True)
     
     # Footer
     st.markdown("---")
